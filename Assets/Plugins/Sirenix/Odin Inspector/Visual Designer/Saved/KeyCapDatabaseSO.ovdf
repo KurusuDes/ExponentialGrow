@@ -1,0 +1,13 @@
+OVDF v1.0
+KeyCapDatabaseSO, Assembly-CSharp
+
+# $HEAKZ5KC7t5azNv2ZaHLRY
+Position: $root
++ [Sirenix.OdinInspector.TitleGroupAttribute]
+	GroupName = "Database"
+
+# data
+Position: $HEAKZ5KC7t5azNv2ZaHLRY:0
++ [Sirenix.OdinInspector.DictionaryDrawerSettings]
+	DisplayMode = OneLine
+	KeyColumnWidth = 200
