@@ -17,7 +17,11 @@ public class Player : MonoBehaviour ,IDamageable
         EffectManager.OnCastEffect += OnCastEffect;
     }
 
-   
+    private void OnDestroy()
+    {
+        EffectManager.OnCastEffect -= OnCastEffect;
+    }
+
 
     // Update is called once per frame
     void Update()
@@ -34,9 +38,8 @@ public class Player : MonoBehaviour ,IDamageable
     public void OnTakeDamage(int amount, GenreType genretype, IDamageable sender)
     {
         BaseEnemy obj = sender as BaseEnemy;
-        
+        string senderName = obj ? obj.EntityName : sender?.GetType().Name ?? "Unknown";
 
-
-        print("Player take damage Damage:" + amount + " , Genre: " + genretype + " , From: " + obj.EntityName);
+        print("Player take damage Damage:" + amount + " , Genre: " + genretype + " , From: " + senderName);
     }
 }

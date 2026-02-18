@@ -44,7 +44,13 @@ public class ComboManager : MonoBehaviour
         OnComboQueueAdded += GetPosiblePaths;
     }
 
-   
+    private void OnDestroy()
+    {
+        PlayerInputs.OnAttack -= RegisterInput;
+        OnComboTrigger -= GetComboType;
+        OnComboQueueAdded -= GetPosiblePaths;
+    }
+
 
     void Start()
     {
