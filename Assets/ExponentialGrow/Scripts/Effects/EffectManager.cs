@@ -16,6 +16,12 @@ public class EffectManager : MonoBehaviour
         OnCastEffect += ShowVisualCombo;
     }
 
+    private void OnDestroy()
+    {
+        ComboManager.OnComboTypeTrigger -= OnEffectTrigger;
+        OnCastEffect -= ShowVisualCombo;
+    }
+
   
 
     void Start()

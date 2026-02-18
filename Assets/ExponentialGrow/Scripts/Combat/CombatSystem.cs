@@ -27,6 +27,14 @@ public class CombatSystem : MonoBehaviour
         OnCreateEnemy += CreateEnemyTest;
     }
 
+    private void OnDestroy()
+    {
+        OnEnemyDefeated -= RewardMechanism;
+        OnEffectCasted -= OnRegisterAttack;
+        OnEnemyDefeated -= SpawnNextEnemy;
+        OnCreateEnemy -= CreateEnemyTest;
+    }
+
 
 
 
@@ -66,6 +74,9 @@ public class CombatSystem : MonoBehaviour
     }
     public void ResetCombat()
     {
+        if (!CurrentTarget)
+            return;
+
         Destroy(CurrentTarget.gameObject);
         CurrentTarget = null;
         //SpawnEnemy(EnemyDatabaseSO.GetEnemy());
