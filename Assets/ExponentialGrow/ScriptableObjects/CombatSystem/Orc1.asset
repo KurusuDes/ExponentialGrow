@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entityName: Orc
   race: 6
+  chanceToInvoke: 100
   hitpoints: 6
   actionSpeed: 4
   actions:

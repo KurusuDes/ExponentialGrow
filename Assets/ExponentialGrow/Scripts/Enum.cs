@@ -98,6 +98,15 @@ public enum StanceType
     Unstable,
     Charger
 }
+public enum EnemyState
+{
+    Idle,
+    PreparingAttack,
+    ChargingAttack,
+    AboutToAttack,
+    Attacking,
+    Defeated
+}
 
 public enum GameState
 {

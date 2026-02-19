@@ -12,6 +12,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
 
     [FoldoutGroup("Settings"),SerializeField] private string entityName;
     [FoldoutGroup("Settings"),SerializeField] private RacesType race;
+    [FoldoutGroup("Settings"), SerializeField] private EnemyState state = EnemyState.Idle;
     [FoldoutGroup("Settings"),SerializeField] private float speed;
     [FoldoutGroup("Settings"),SerializeField] private int hitpoints = 1;
     [FoldoutGroup("Settings"),SerializeField] private List<EntityActionSO> actionList = new();
@@ -32,10 +33,17 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
     #endregion
     #region Feedabacks
     public MMF_Player OnSpawnFeedback;
+
+    public MMF_Player OnPrepareAttackFeedback;
+    public MMF_Player OnChargeAttackFeedback;
+    public MMF_Player OnAboutToAttackFeedback;
+
     public MMF_Player OnAttackFeedback;
+
     public MMF_Player OnHitFeedback;
     public MMF_Player OnDefeatedFeedback;
     #endregion
+    [Button]
     public void Set(EnemySO data)
     {
         Data = data;
@@ -45,7 +53,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
         race = data.Race;
         reward = data.Reward;
         speed = data.ActionSpeed;
-        sprite.sprite = data.Icon;
+       // sprite.sprite = data.Icon;
         foreach (var action in actionList)
         {
             EntityAction entityAction = new(action);
@@ -67,14 +75,130 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
 
     void Start()
     {
-        StartCoroutine(ActionTimer(speed));
+
+        if (Data != null)
+        {
+            Set(Data);
+        }
+
+      //  StartCoroutine(ActionTimer(speed));
         currentAction = actions.Peek();
+
+        
     }
-    
+    //->hook this to an event that pass the turn once the player end his combo or fail his combo
+    [Button]
+    public void ActiveEntity()
+    {
+        if (state == EnemyState.Idle)
+        {
+            if (!GameManager.Instance.ActiveEnemy(Data))
+                return;
+        }
+        print("Enemigo se activo");
+
+        ChangeState(GetNextState(state));
+    }
+    private void ChangeState(EnemyState newState)
+    {
+        if (state == newState)
+            return;
+
+        ExitState(state);
+
+        state = newState;
+
+        EnterStateVFX(state);
+        EnterState(state);
+
+    }
+    private void EnterState(EnemyState state)
+    {
+            switch (state)
+            {
+                case EnemyState.Idle:
+                    break;
+                case EnemyState.PreparingAttack:
+                    break;
+                case EnemyState.ChargingAttack:
+                    break;
+                case EnemyState.AboutToAttack:
+                    break;
+                case EnemyState.Attacking:
+                    ActionsMechanism();
+                    break;
+                case EnemyState.Defeated:
+                    break;
+                default:
+                    break;
+        }
+    }
+    private void EnterStateVFX(EnemyState state)
+    {
+        switch (state)
+        {
+            case EnemyState.PreparingAttack:
+                OnPrepareAttackFeedback.PlayFeedbacks();
+                break;
+            case EnemyState.ChargingAttack:
+                OnChargeAttackFeedback.PlayFeedbacks();
+                break;
+            case EnemyState.AboutToAttack:
+                OnAboutToAttackFeedback.PlayFeedbacks();
+                break;
+            case EnemyState.Attacking:
+                OnAttackFeedback.PlayFeedbacks();
+                break;
+        }
+    }
+
+    private void ExitState(EnemyState state)
+    {
+        StopAllVFX();
+    }
+    public void StopAllVFX()
+    {
+       // if(OnChargeAttackFeedback.IsPlaying)
+            OnChargeAttackFeedback.StopFeedbacks();
+        //if(OnPrepareAttackFeedback.IsPlaying)
+            OnPrepareAttackFeedback.StopFeedbacks();
+        //if(OnAboutToAttackFeedback.IsPlaying)
+            OnAboutToAttackFeedback.StopFeedbacks();
+       // if(OnAttackFeedback.IsPlaying)
+            OnAttackFeedback.StopFeedbacks();
+
+        /*ParticleSystem ps = new();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);*/
+    }
+    //ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+    private EnemyState GetNextState(EnemyState current)
+    {
+        switch (current)
+        {
+            case EnemyState.Idle:
+                return EnemyState.PreparingAttack;
+
+            case EnemyState.PreparingAttack:
+                return EnemyState.ChargingAttack;
+
+            case EnemyState.ChargingAttack:
+                return EnemyState.AboutToAttack;
+
+            case EnemyState.AboutToAttack:
+                return EnemyState.Attacking;
+
+            case EnemyState.Attacking:
+                return EnemyState.Idle;
+
+            default:
+                return current;
+        }
+    }
     void Update()
     {
         
     }
+
     #region ActionTimer
     /*
       public IEnumerator ActionLoop(float delay)
@@ -108,7 +232,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
         ActionsMechanism();
         StartCoroutine(ActionTimer(delay));
     }
-    public void ActionsMechanism(bool alteredState = false)
+    private void ActionsMechanism(bool alteredState = false)
     {
         EntityAction action = actions.Dequeue();
 

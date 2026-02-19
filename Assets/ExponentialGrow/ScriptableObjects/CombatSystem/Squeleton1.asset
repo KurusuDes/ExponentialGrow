@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entityName: Skelly
   race: 2
+  chanceToInvoke: 100
   hitpoints: 2
   actionSpeed: 4
   actions:

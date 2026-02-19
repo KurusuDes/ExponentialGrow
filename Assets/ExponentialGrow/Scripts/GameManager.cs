@@ -43,4 +43,6 @@ public class GameManager : MonoBehaviour
     public static Player Player => Instance.player;
 
     public EnemySO GetRandomEnemy() => EnemyDatabaseSO.GetEnemy(seedRandom.GetRandomEnemy());
+
+    public bool ActiveEnemy(EnemySO enemy) => seedRandom.ChanceToActiveEnemy(enemy);
 }
