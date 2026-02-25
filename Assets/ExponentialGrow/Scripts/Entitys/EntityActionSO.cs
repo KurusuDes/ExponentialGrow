@@ -1,6 +1,8 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+//-> Considerar unificar el EffectSO y el EntityActionSO en uno solo hacen basicamente lo mismo
+
 [CreateAssetMenu(fileName = "ActionSO", menuName = "Scriptable Objects/ActionSO"),InlineEditor]
 public class EntityActionSO : ScriptableObject
 {

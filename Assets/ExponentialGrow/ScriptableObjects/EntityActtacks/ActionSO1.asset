@@ -15,7 +15,7 @@ MonoBehaviour:
   Vfx: {fileID: 0}
   attackType: 1
   stanceType: 1
-  genreType: 1
+  genreType: 2
   baseDamage: 9
   baseDefense: 1
   abilityValue: 9

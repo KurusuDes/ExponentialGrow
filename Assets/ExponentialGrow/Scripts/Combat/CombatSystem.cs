@@ -70,7 +70,7 @@ public class CombatSystem : MonoBehaviour
             return;
         }
         print("Recive Damage");
-        CurrentTarget?.OnTakeDamage(effect.Damage,effect.genreType,sender);
+        CurrentTarget?.OnTakeDamage(effect.Damage,effect.genreType,sender);//-> Considerar unificar el Effect SO y el EntityActionSO en uno solo hacen basicamente lo mismo
     }
     public void ResetCombat()
     {
