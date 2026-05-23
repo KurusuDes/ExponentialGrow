@@ -129,3 +129,25 @@ Assets/ExponentialGrow/
 
 - `main` — rama estable.
 - `claude/epic-mendel-eb44N` — rama designada para desarrollo asistido (override explícito: usuario indicó push a `main` para esta documentación).
+
+## Documentación en Notion (creada 2026-05-23)
+
+Hub principal: https://www.notion.so/369ac10136a7813598d7dce9b63939e4
+
+| Página | Link |
+|--------|------|
+| Resumen y Stack Técnico | https://www.notion.so/369ac10136a7810ea962d7760d0d10bd |
+| Arquitectura de Scripts | https://www.notion.so/369ac10136a7812a8d8bec9a9ce90a46 |
+| Enumeraciones y Tablas de Datos | https://www.notion.so/369ac10136a78166aeeac7986f33ed85 |
+| Estado del Proyecto | https://www.notion.so/369ac10136a781dfbeb4c74479c4d148 |
+| Mejoras Propuestas — Roadmap | https://www.notion.so/369ac10136a78138a346e68f3b63b7fa |
+| Guía Rápida del Desarrollador | https://www.notion.so/369ac10136a7814d9c7dd4ddada78e9f |
+
+> Al actualizar el estado del proyecto, mantener también las páginas de Notion sincronizadas (especialmente "Estado del Proyecto" y "Mejoras Propuestas").
+
+## Historial de sesiones con Claude
+
+### Sesión 2026-05-23
+- Leído `CLAUDE.md` y `docs/CONTEXT.md` para obtener contexto completo del proyecto.
+- Creado hub de documentación en Notion con 6 sub-páginas (ver tabla arriba).
+- Próximos pasos sugeridos: definir objetivos del proyecto (`docs/CONTEXT.md §9`), implementar `DamageCalculator` estático.
