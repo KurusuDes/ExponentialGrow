@@ -36,11 +36,8 @@ public class EffectManager : MonoBehaviour
     }
     private void OnEffectTrigger(ComboName type)
     {
-        
-        EffectSO effectso = EffectDatabase.GetEffect(type);
-
-        Effect effect = new(effectso, type);
-
+        CombatActionSO data = EffectDatabase.GetEffect(type);
+        Effect effect = new(data, type);
         OnCastEffect?.Invoke(effect);
     }
     private void ShowVisualCombo(Effect effect)

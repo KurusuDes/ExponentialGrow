@@ -4,7 +4,7 @@ using UnityEngine;
 [Serializable]
 public class EntityAction 
 {
-    private EntityActionSO source;
+    private CombatActionSO source;
 
     private AttackType attackType;
     private StanceType stanceType;
@@ -13,8 +13,7 @@ public class EntityAction
     private int currentDamage;
     private int currentDefense;
 
-   
-    public EntityAction(EntityActionSO data)
+    public EntityAction(CombatActionSO data)
     {
         source = data;
 
@@ -25,16 +24,12 @@ public class EntityAction
         currentDamage = data.BaseDamage;
         currentDefense = data.BaseDefense;
     }
-    //->aqui se deberia llamar la raza el tipo y calculo de daño
+    //->aqui se deberia llamar la raza el tipo y calculo de daï¿½o
     //algo como una clase estatica damagecalculator
     public void ApplyEffect(IDamageable target,IDamageable sender)
     {
         target.OnTakeDamage(currentDamage, genreType, sender);
     }
-
-
-
-
     public AttackType AttackType => attackType;
     public StanceType StanceType => stanceType;
     public GenreType GenreType => genreType;
@@ -42,7 +37,7 @@ public class EntityAction
     public int BaseDamage => currentDamage;
     public int BaseDefense => currentDefense;
 
-    public EntityActionSO Source => source;
+    public CombatActionSO Source => source;
 
    
 

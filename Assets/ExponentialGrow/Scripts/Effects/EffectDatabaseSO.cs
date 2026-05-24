@@ -6,11 +6,11 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "EffectDatabaseSO", menuName = "Scriptable Objects/EffectManagerSO")]
 public class EffectDatabaseSO : SerializedScriptableObject
 {
-    [OdinSerialize] private Dictionary<ComboName, EffectSO> effects = new();
+    [OdinSerialize] private Dictionary<ComboName, CombatActionSO> effects = new();
 
-    public EffectSO GetEffect(ComboName type)
+    public CombatActionSO GetEffect(ComboName type)
     {
-        if(effects.TryGetValue(type, out EffectSO value))
+        if(effects.TryGetValue(type, out CombatActionSO value))
             return value;
 
         Debug.Log("EFFECT NOT FOUND returning default");
@@ -19,5 +19,5 @@ public class EffectDatabaseSO : SerializedScriptableObject
 
 
 
-    public Dictionary<ComboName, EffectSO> Effects => effects;
+    public Dictionary<ComboName, CombatActionSO> Effects => effects;
 }

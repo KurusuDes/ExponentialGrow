@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
 
     [InlineEditor] public KeyCapDatabaseSO KeyCapDatabase;
 
+
+
     public SeedRandom seedRandom = new();
     //[InlineEditor] public ComboDatabaseSO ComboDatabase;
     public EnemysDatabaseSO EnemyDatabaseSO;

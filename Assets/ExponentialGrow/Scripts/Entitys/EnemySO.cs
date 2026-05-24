@@ -13,7 +13,7 @@ public class EnemySO : ScriptableObject
     [FoldoutGroup("CoreSettings"), SerializeField, Range(1, 100)] private int chanceToInvoke;
     [FoldoutGroup("CoreSettings") ,SerializeField, Range(1,10)] private int hitpoints = 1;
     [FoldoutGroup("CoreSettings") ,SerializeField, Range(0, 20)] private float actionSpeed;
-    [FoldoutGroup("CoreSettings") ,SerializeField] private List<EntityActionSO> actions;
+    [FoldoutGroup("CoreSettings") ,SerializeField] private List<CombatActionSO> actions;
     [FoldoutGroup("CoreSettings"), SerializeField] private Reward reward;
     [FoldoutGroup("Visuals"), SerializeField] private Sprite icon;
 
@@ -41,7 +41,7 @@ public class EnemySO : ScriptableObject
     public RacesType Race => race;
     public int HitPoints => hitpoints;
     public float ActionSpeed => actionSpeed;
-    public List<EntityActionSO> Actions => actions;
+    public List<CombatActionSO> Actions => actions;
     public Reward Reward => reward;
     public Sprite Icon => icon;
     public int ChanceToInvoke => chanceToInvoke;

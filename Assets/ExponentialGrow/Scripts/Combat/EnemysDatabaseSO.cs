@@ -15,19 +15,37 @@ public class EnemysDatabaseSO : SerializedScriptableObject
   
     public EnemySO GetEnemy()
     {
-        int randomEnemyNumber = GameManager.Instance.seedRandom.GetRandomEnemy();
-        RarityType type = rarityOddsTable.GetRarityByOdds(randomEnemyNumber);
-        int randomEnemyIndex = GameManager.Instance.seedRandom.EnemyRange(0, enemiesData[type].Count);
-
-        return enemiesData[type][randomEnemyIndex];
+        int roll = GameManager.Instance.seedRandom.GetRandomEnemy();
+        return ResolveEnemy(roll);
     }
-    public EnemySO GetEnemy(int randomSeed)//->Completar
-    {
-        RarityType type = rarityOddsTable.GetRarityByOdds(randomSeed);
-      
 
-        int randomEnemyIndex = GameManager.Instance.seedRandom.EnemyRange(0, enemiesData[type].Count);
-        Debug.Log("Rariry type: " + type.ToString() + " Number: " + randomEnemyIndex);
-        return enemiesData[type][randomEnemyIndex];
+    public EnemySO GetEnemy(int randomSeed)
+    {
+        return ResolveEnemy(randomSeed);
+    }
+
+    private EnemySO ResolveEnemy(int roll)
+    {
+        RarityType type = rarityOddsTable.GetRarityByOdds(roll);
+
+        if (!HasEnemies(type))
+        {
+            Debug.LogWarning($"[EnemyDatabase] Sin enemigos para {type}, usando Common.");
+            type = RarityType.Common;
+        }
+
+        if (!HasEnemies(type))
+        {
+            Debug.LogError("[EnemyDatabase] La base de datos no tiene enemigos registrados.");
+            return null;
+        }
+
+        int index = GameManager.Instance.seedRandom.EnemyRange(0, enemiesData[type].Count);
+        return enemiesData[type][index];
+    }
+
+    private bool HasEnemies(RarityType type)
+    {
+        return enemiesData.ContainsKey(type) && enemiesData[type] != null && enemiesData[type].Count > 0;
     }
 }

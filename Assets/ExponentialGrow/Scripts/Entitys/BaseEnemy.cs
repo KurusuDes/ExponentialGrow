@@ -15,7 +15,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
     [FoldoutGroup("Settings"), SerializeField] private EnemyState state = EnemyState.Idle;
     [FoldoutGroup("Settings"),SerializeField] private float speed;
     [FoldoutGroup("Settings"),SerializeField] private int hitpoints = 1;
-    [FoldoutGroup("Settings"),SerializeField] private List<EntityActionSO> actionList = new();
+    [FoldoutGroup("Settings"),SerializeField] private List<CombatActionSO> actionList = new();
     [FoldoutGroup("Settings"), SerializeField] private Reward reward;
     [FoldoutGroup("Visuals"),SerializeField] private SpriteRenderer sprite;
 
@@ -29,7 +29,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
     public Action OnDefeated;
 
     public Action<float> OnActionProgress; // 0..1
-    public Action<float> OnActionStarted;  // duración
+    public Action<float> OnActionStarted;  // duraciï¿½n
     #endregion
     #region Feedabacks
     public MMF_Player OnSpawnFeedback;
@@ -282,7 +282,7 @@ public class BaseEnemy : MonoBehaviour ,IDamageable
     [Button]
     public void OnTakeDamage(int amount,GenreType genreType = GenreType.None, IDamageable sender = null)
     {
-        //->llamar a clase que lea el daño y el typo y o reste daño o duplique el daño, Idea: las habilidades tienen cd si spameas una habilidad pierde el bono de genero
+        //->llamar a clase que lea el daï¿½o y el typo y o reste daï¿½o o duplique el daï¿½o, Idea: las habilidades tienen cd si spameas una habilidad pierde el bono de genero
         hitpoints = (int)MathF.Max((hitpoints - amount), 0);
 
         if (hitpoints <= 0)

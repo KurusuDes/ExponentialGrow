@@ -4,19 +4,19 @@ using UnityEngine;
 
 public class Effect
 {
-    public EffectSO effectSO;
+    public CombatActionSO effectSO;
     public GenreType genreType;
     public ComboName comboType;
     public int Damage;
     public int Shield;
-   
-    public Effect(EffectSO effectSO, ComboName comboType)
+
+    public Effect(CombatActionSO data, ComboName comboType)
     {
-        this.effectSO = effectSO;
+        this.effectSO = data;
         this.comboType = comboType;
-        genreType = effectSO.GenreType;
-        Damage = effectSO.BaseDamage;
-        Shield = effectSO.BaseDefense;
+        genreType = data.GenreType;
+        Damage = data.BaseDamage;
+        Shield = data.BaseDefense;
     }
 
     public Effect ActiveEffect(List<IAttackModifier> modifiers)
