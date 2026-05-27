@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>ExponentialGrow — Arquitectura de Scripts</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1117; font-family: 'Segoe UI', monospace; overflow: hidden; color: #c9d1d9; user-select: none; }
+
+#toolbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 48px;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  display: flex; align-items: center; padding: 0 14px; gap: 6px; z-index: 100;
+  flex-wrap: nowrap;
+}
+#toolbar h1 { font-size: 13px; color: #58a6ff; font-weight: 700; white-space: nowrap; margin-right: 10px; }
+.sep { width: 1px; height: 24px; background: #30363d; margin: 0 4px; }
+.lbl { font-size: 11px; color: #8b949e; white-space: nowrap; }
+.btn {
+  padding: 4px 9px; border: 1px solid #30363d; background: #21262d;
+  color: #8b949e; border-radius: 6px; cursor: pointer; font-size: 11px;
+  transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 4px;
+}
+.btn:hover { background: #30363d; color: #c9d1d9; }
+.btn.on { background: #1c2d3e; border-color: #388bfd; color: #58a6ff; }
+#spacer { flex: 1; }
+.btn-sm { padding: 4px 8px; }
+
+#svg-wrap { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; cursor: default; }
+svg { width: 100%; height: 100%; display: block; }
+
+#legend {
+  position: fixed; bottom: 14px; left: 14px;
+  background: #161b22cc; backdrop-filter: blur(8px);
+  border: 1px solid #30363d; border-radius: 8px;
+  padding: 10px 14px; z-index: 100; min-width: 170px;
+}
+#legend h3, #cat-panel h3 {
+  font-size: 10px; color: #8b949e; margin-bottom: 7px;
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.leg-row {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 5px; cursor: pointer; opacity: 1; transition: opacity .2s;
+}
+.leg-row.off { opacity: 0.25; }
+.leg-row span { font-size: 11px; color: #c9d1d9; }
+.leg-svg { width: 46px; height: 14px; flex-shrink: 0; }
+
+#cat-panel {
+  position: fixed; bottom: 14px; right: 14px;
+  background: #161b22cc; backdrop-filter: blur(8px);
+  border: 1px solid #30363d; border-radius: 8px;
+  padding: 10px 14px; z-index: 100; min-width: 150px;
+}
+.cat-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.cat-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.cat-row span { font-size: 11px; color: #c9d1d9; }
+
+#info-panel {
+  position: fixed; top: 58px; right: 14px;
+  background: #161b22cc; backdrop-filter: blur(8px);
+  border: 1px solid #30363d; border-radius: 8px;
+  padding: 10px 14px; z-index: 100; min-width: 230px;
+  display: none; max-width: 280px;
+}
+#info-panel h4 { font-size: 13px; color: #58a6ff; margin-bottom: 6px; font-weight: 600; }
+.info-row { display: flex; gap: 6px; margin-bottom: 3px; align-items: flex-start; }
+.info-lbl { font-size: 10px; color: #6e7681; text-transform: uppercase; letter-spacing: 1px; min-width: 55px; padding-top: 1px; }
+.info-val { font-size: 11px; color: #8b949e; word-break: break-all; }
+.info-note { font-size: 11px; color: #f0b429; margin-top: 4px; }
+
+#zoom-hud {
+  position: fixed; top: 58px; left: 14px; z-index: 100;
+  background: #161b22cc; border: 1px solid #30363d;
+  border-radius: 6px; padding: 3px 9px;
+  font-size: 11px; color: #8b949e; font-family: monospace;
+}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>⬡ ExponentialGrow</h1>
+  <div class="sep"></div>
+  <span class="lbl">Relaciones:</span>
+  <button class="btn on" data-type="inheritance" title="Herencia">▷ Herencia</button>
+  <button class="btn on" data-type="interface"   title="Implementa interfaz">⤳ Interfaz</button>
+  <button class="btn on" data-type="composition" title="Composición (◆ en origen)">◆ Composición</button>
+  <button class="btn on" data-type="aggregation" title="Agregación (◇ en origen)">◇ Agregación</button>
+  <button class="btn on" data-type="association" title="Asociación simple">→ Asociación</button>
+  <div class="sep"></div>
+  <span class="lbl">Nodos:</span>
+  <button class="btn btn-sm" id="btn-reset">Reset zoom</button>
+  <button class="btn btn-sm" id="btn-fit">Fit all</button>
+  <div id="spacer"></div>
+  <span class="lbl" style="font-size:10px;color:#6e7681">Drag nodos · Scroll zoom · Drag fondo para pan</span>
+</div>
+
+<div id="svg-wrap">
+  <svg id="diagram" xmlns="http://www.w3.org/2000/svg">
+    <defs id="defs"></defs>
+    <g id="root">
+      <g id="layer-edges"></g>
+      <g id="layer-nodes"></g>
+    </g>
+  </svg>
+</div>
+
+<div id="legend">
+  <h3>Leyenda</h3>
+  <div class="leg-row on" data-type="inheritance">
+    <svg class="leg-svg"><line x1="2" y1="7" x2="34" y2="7" stroke="#c9d1d9" stroke-width="1.8"/><polygon points="34,3 46,7 34,11" fill="#0d1117" stroke="#c9d1d9" stroke-width="1.5"/></svg>
+    <span>Herencia</span>
+  </div>
+  <div class="leg-row on" data-type="interface">
+    <svg class="leg-svg"><line x1="2" y1="7" x2="34" y2="7" stroke="#ff7eb6" stroke-width="1.5" stroke-dasharray="4,3"/><polygon points="34,3 46,7 34,11" fill="#0d1117" stroke="#ff7eb6" stroke-width="1.5"/></svg>
+    <span>Interfaz</span>
+  </div>
+  <div class="leg-row on" data-type="composition">
+    <svg class="leg-svg"><polygon points="2,7 9,3 16,7 9,11" fill="#f85149"/><line x1="16" y1="7" x2="38" y2="7" stroke="#f85149" stroke-width="1.8"/><polygon points="38,3.5 46,7 38,10.5" fill="#f85149"/></svg>
+    <span>Composición</span>
+  </div>
+  <div class="leg-row on" data-type="aggregation">
+    <svg class="leg-svg"><polygon points="2,7 9,3 16,7 9,11" fill="#0d1117" stroke="#58a6ff" stroke-width="1.5"/><line x1="16" y1="7" x2="38" y2="7" stroke="#58a6ff" stroke-width="1.8"/><polygon points="38,3.5 46,7 38,10.5" fill="#58a6ff"/></svg>
+    <span>Agregación</span>
+  </div>
+  <div class="leg-row on" data-type="association">
+    <svg class="leg-svg"><line x1="2" y1="7" x2="38" y2="7" stroke="#6e7681" stroke-width="1.5"/><polygon points="38,3.5 46,7 38,10.5" fill="#6e7681"/></svg>
+    <span>Asociación</span>
+  </div>
+</div>
+
+<div id="cat-panel">
+  <h3>Categorías</h3>
+</div>
+
+<div id="info-panel">
+  <h4 id="ip-name">—</h4>
+  <div class="info-row"><span class="info-lbl">Archivo</span><span class="info-val" id="ip-file">—</span></div>
+  <div class="info-row"><span class="info-lbl">Tipo</span><span class="info-val" id="ip-cat">—</span></div>
+  <div id="ip-note-row" style="display:none"><span class="info-note" id="ip-note"></span></div>
+</div>
+
+<div id="zoom-hud">100%</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════
+const NW = 168, NH = 36;
+
+const CATS = {
+  manager:  { color: '#388bfd', label: 'Managers' },
+  combat:   { color: '#f85149', label: 'Combat' },
+  combo:    { color: '#a371f7', label: 'Combo' },
+  effects:  { color: '#3fb950', label: 'Effects' },
+  entity:   { color: '#ffa657', label: 'Entities' },
+  player:   { color: '#26cd8d', label: 'Player' },
+  ui:       { color: '#f0b429', label: 'UI' },
+  dungeon:  { color: '#a27035', label: 'Dungeon' },
+  core:     { color: '#768390', label: 'Core / Utils' },
+  iface:    { color: '#ff7eb6', label: 'Interfaces' },
+  data:     { color: '#6e7681', label: 'Data / SO' },
+  editor:   { color: '#484f58', label: 'Editor Tools' },
+};
+
+const EDGE_STYLES = {
+  inheritance: { stroke: '#c9d1d9', width: 1.8, dash: null,   startMark: null,        endMark: 'tri-inherit' },
+  interface:   { stroke: '#ff7eb6', width: 1.5, dash: '5,3',  startMark: null,        endMark: 'tri-iface'   },
+  composition: { stroke: '#f85149', width: 1.8, dash: null,   startMark: 'dia-comp',  endMark: 'arr-red'     },
+  aggregation: { stroke: '#58a6ff', width: 1.8, dash: null,   startMark: 'dia-aggr',  endMark: 'arr-blue'    },
+  association: { stroke: '#6e7681', width: 1.4, dash: null,   startMark: null,        endMark: 'arr-grey'    },
+};
+
+// ══════════════════════════════════════════════════════
+// NODE DATA
+// ══════════════════════════════════════════════════════
+const NODES = [
+  // ── Interfaces ──────────────────────────────────────────
+  { id: 'IDamageable',       cat: 'iface',   x:  760,  y:  44, file: 'Scripts/Interfaces.cs',                        note: 'TakeDamage(int, GenreType)' },
+  { id: 'IAttackModifier',   cat: 'iface',   x:  980,  y:  44, file: 'Scripts/Interfaces.cs',                        note: 'Modify(Effect)' },
+
+  // ── Top databases ───────────────────────────────────────
+  { id: 'ComboDatabaseSO',   cat: 'combo',   x:  480,  y:  44, file: 'Scripts/Combo/ComboDatabaseSO.cs' },
+  { id: 'EffectDatabaseSO',  cat: 'effects', x: 1200,  y:  44, file: 'Scripts/Effects/EffectDatabaseSO.cs' },
+  { id: 'KeyCapDatabaseSO',  cat: 'data',    x: 1420,  y:  44, file: 'Scripts/KeyCapDatabaseSO.cs' },
+  { id: 'ReourceUIDatabaseSO',cat:'ui',      x: 1640,  y:  44, file: 'Scripts/UI/ReourceUIDatabaseSO.cs',            note: '⚠ typo: Reource' },
+
+  // ── Manager row ─────────────────────────────────────────
+  { id: 'SeedRandom',        cat: 'core',    x:   40,  y: 190, file: 'Scripts/Core/SeedRandom.cs',                   note: 'seeds separadas por categoría' },
+  { id: 'GameManager',       cat: 'manager', x:  240,  y: 190, file: 'Scripts/GameManager.cs',                       note: 'Singleton' },
+  { id: 'EnemysDatabaseSO',  cat: 'combat',  x:  460,  y: 190, file: 'Scripts/Combat/EnemysDatabaseSO.cs' },
+  { id: 'ComboManager',      cat: 'combo',   x:  680,  y: 190, file: 'Scripts/Combo/ComboManager.cs',                note: 'Singleton' },
+  { id: 'EffectManager',     cat: 'effects', x:  900,  y: 190, file: 'Scripts/Effects/EffectManager.cs',             note: 'Singleton' },
+  { id: 'RoomManager',       cat: 'dungeon', x: 1120,  y: 190, file: 'Scripts/Dungeon/RoomManager.cs',               note: 'Singleton · BFS tree' },
+  { id: 'GameManagerUI',     cat: 'ui',      x: 1340,  y: 190, file: 'Scripts/UI/GameManagerUI.cs',                  note: 'Singleton' },
+
+  // ── System row ──────────────────────────────────────────
+  { id: 'Player',            cat: 'player',  x:   40,  y: 360, file: 'Scripts/Player.cs',                            note: '⚠ HP sin implementar' },
+  { id: 'CombatSystem',      cat: 'combat',  x:  260,  y: 360, file: 'Scripts/Combat/CombatSystem.cs' },
+  { id: 'RarityOddsTable',   cat: 'core',    x:  480,  y: 360, file: 'Scripts/RarityOddsTable.cs' },
+  { id: 'BaseEnemy',         cat: 'entity',  x:  700,  y: 360, file: 'Scripts/Entitys/BaseEnemy.cs',                 note: 'State Machine: Idle→Attack' },
+  { id: 'EntityAction',      cat: 'entity',  x:  920,  y: 360, file: 'Scripts/Entitys/EntityAction.cs' },
+  { id: 'CombatActionSO',    cat: 'combat',  x: 1140,  y: 360, file: 'Scripts/Combat/CombatActionSO.cs',             note: 'Unificación de EffectSO+EntityActionSO' },
+  { id: 'ComboNodeSO',       cat: 'combo',   x: 1360,  y: 360, file: 'Scripts/Combo/ComboNodeSO.cs' },
+  { id: 'KeyCapSO',          cat: 'data',    x: 1580,  y: 360, file: 'Scripts/KeyCapSO.cs' },
+
+  // ── Detail row ──────────────────────────────────────────
+  { id: 'PlayerInputs',      cat: 'player',  x:   40,  y: 500, file: 'Scripts/PlayerInputs.cs' },
+  { id: 'EntityUI',          cat: 'combat',  x:  260,  y: 500, file: 'Scripts/Combat/EntityUI.cs',                   note: '⚠ duplicado de EnemyEntityGUI' },
+  { id: 'EnemyEntityGUI',    cat: 'combat',  x:  460,  y: 500, file: 'Scripts/Combat/EnemyEntityGUI.cs',             note: '⚠ duplicado de EntityUI' },
+  { id: 'RarityOdds',        cat: 'core',    x:  480,  y: 440, file: 'Scripts/RarityOddsTable.cs',                   note: 'struct' },
+  { id: 'EnemySO',           cat: 'entity',  x:  700,  y: 500, file: 'Scripts/Entitys/EnemySO.cs' },
+  { id: 'Reward',            cat: 'entity',  x:  920,  y: 500, file: 'Scripts/Entitys/Reward.cs',                    note: '⚠ items no se procesan' },
+  { id: 'EffectSO',          cat: 'effects', x: 1140,  y: 500, file: 'Scripts/Effects/EffectSO.cs',                  note: 'subclase vacía — compat. assets' },
+  { id: 'EntityActionSO',    cat: 'entity',  x: 1360,  y: 500, file: 'Scripts/Entitys/EntityActionSO.cs',            note: 'subclase vacía — compat. assets' },
+  { id: 'ArrowKeyUI',        cat: 'ui',      x: 1580,  y: 500, file: 'Scripts/UI/ArrowKeyUI.cs' },
+
+  // ── Visual / lower row ──────────────────────────────────
+  { id: 'PlayerUI',          cat: 'player',  x:   40,  y: 640, file: 'Scripts/Player/PlayerUI.cs',                   note: '❌ archivo vacío' },
+  { id: 'HealthBarUI',       cat: 'combat',  x:  260,  y: 640, file: 'Scripts/Combat/HealthBarUI.cs' },
+  { id: 'HealthBarView',     cat: 'combat',  x:  460,  y: 640, file: 'Scripts/Combat/HealthBarView.cs',              note: '⚠ esqueleto' },
+  { id: 'Effect',            cat: 'effects', x:  680,  y: 640, file: 'Scripts/Effects/Effect.cs',                    note: 'runtime — wraps CombatActionSO' },
+  { id: 'RoomNode',          cat: 'dungeon', x: 1120,  y: 500, file: 'Scripts/Dungeon/RoomNode.cs',                  note: 'depth · parentRoom · enemyPool' },
+  { id: 'ComboPredictUI',    cat: 'ui',      x: 1360,  y: 640, file: 'Scripts/UI/ComboPredictUI.cs' },
+
+  // ── Bottom utils ────────────────────────────────────────
+  { id: 'AttackDirectionVisualController', cat:'player', x: 40, y: 780, file: 'Scripts/AttackDirectionVisualController.cs' },
+  { id: 'ModifierSO',        cat: 'data',    x:  680,  y: 780, file: 'Scripts/ModifierSO.cs' },
+  { id: 'Modifier',          cat: 'data',    x:  900,  y: 780, file: 'Scripts/Modifier.cs' },
+
+  // ── Editor tools ────────────────────────────────────────
+  { id: 'ComboGraphWindow',  cat: 'editor',  x: 1640,  y: 190, file: 'Scripts/Combo/ComboVisualizer/ComboGraphWindow.cs',     note: 'Tools > DungeonDiscotecDisaster' },
+  { id: 'ComboGraphViewNode',cat: 'editor',  x: 1640,  y: 360, file: 'Scripts/Combo/ComboVisualizer/ComboGraphViewNode.cs' },
+  { id: 'ModularBrushWindow',cat: 'editor',  x: 1640,  y: 640, file: 'Scripts/EditorTools/ModularBrushWindow.cs',            note: 'Sowtank Tools > Modular Brush' },
+];
+
+// ══════════════════════════════════════════════════════
+// EDGE DATA  { from, to, type }
+// types: inheritance | interface | composition | aggregation | association
+// ══════════════════════════════════════════════════════
+const EDGES = [
+  // ── INHERITANCE ─────────────────────────────────────────
+  { from: 'EffectSO',          to: 'CombatActionSO',   type: 'inheritance' },
+  { from: 'EntityActionSO',    to: 'CombatActionSO',   type: 'inheritance' },
+
+  // ── INTERFACE IMPLEMENTATION ─────────────────────────────
+  { from: 'Player',            to: 'IDamageable',      type: 'interface'   },
+  { from: 'BaseEnemy',         to: 'IDamageable',      type: 'interface'   },
+  { from: 'Modifier',          to: 'IAttackModifier',  type: 'interface'   },
+
+  // ── COMPOSITION ─────────────────────────────────────────
+  { from: 'GameManager',       to: 'CombatSystem',     type: 'composition' },
+  { from: 'GameManager',       to: 'Player',           type: 'composition' },
+  { from: 'GameManager',       to: 'SeedRandom',       type: 'composition' },
+  { from: 'GameManager',       to: 'EnemysDatabaseSO', type: 'composition' },
+  { from: 'EnemysDatabaseSO',  to: 'RarityOddsTable',  type: 'composition' },
+  { from: 'EnemysDatabaseSO',  to: 'EnemySO',          type: 'composition' },
+  { from: 'ComboDatabaseSO',   to: 'ComboNodeSO',      type: 'composition' },
+  { from: 'RarityOddsTable',   to: 'RarityOdds',       type: 'composition' },
+  { from: 'EnemySO',           to: 'Reward',           type: 'composition' },
+  { from: 'EnemySO',           to: 'CombatActionSO',   type: 'composition' },
+  { from: 'Effect',            to: 'CombatActionSO',   type: 'composition' },
+  { from: 'KeyCapDatabaseSO',  to: 'KeyCapSO',         type: 'composition' },
+  { from: 'EffectDatabaseSO',  to: 'CombatActionSO',   type: 'composition' },
+
+  // ── AGGREGATION ─────────────────────────────────────────
+  { from: 'CombatSystem',      to: 'BaseEnemy',        type: 'aggregation' },
+  { from: 'CombatSystem',      to: 'EntityUI',         type: 'aggregation' },
+  { from: 'CombatSystem',      to: 'Reward',           type: 'aggregation' },
+  { from: 'CombatSystem',      to: 'Effect',           type: 'aggregation' },
+  { from: 'BaseEnemy',         to: 'EnemySO',          type: 'aggregation' },
+  { from: 'BaseEnemy',         to: 'EntityAction',     type: 'aggregation' },
+  { from: 'BaseEnemy',         to: 'CombatActionSO',   type: 'aggregation' },
+  { from: 'BaseEnemy',         to: 'Reward',           type: 'aggregation' },
+  { from: 'EntityUI',          to: 'BaseEnemy',        type: 'aggregation' },
+  { from: 'EntityUI',          to: 'HealthBarUI',      type: 'aggregation' },
+  { from: 'EnemyEntityGUI',    to: 'BaseEnemy',        type: 'aggregation' },
+  { from: 'EnemyEntityGUI',    to: 'HealthBarUI',      type: 'aggregation' },
+  { from: 'ComboManager',      to: 'ComboDatabaseSO',  type: 'aggregation' },
+  { from: 'ComboManager',      to: 'PlayerInputs',     type: 'aggregation' },
+  { from: 'EffectManager',     to: 'EffectDatabaseSO', type: 'aggregation' },
+  { from: 'EffectManager',     to: 'ComboManager',     type: 'aggregation' },
+  { from: 'EffectManager',     to: 'Effect',           type: 'aggregation' },
+  { from: 'ComboPredictUI',    to: 'ComboManager',     type: 'aggregation' },
+  { from: 'ComboPredictUI',    to: 'ArrowKeyUI',       type: 'aggregation' },
+  { from: 'ArrowKeyUI',        to: 'GameManagerUI',    type: 'aggregation' },
+  { from: 'Player',            to: 'EffectManager',    type: 'aggregation' },
+  { from: 'RoomManager',       to: 'RoomNode',         type: 'aggregation' },
+  { from: 'RoomManager',       to: 'CombatSystem',     type: 'aggregation' },
+  { from: 'RoomNode',          to: 'EnemySO',          type: 'aggregation' },
+  { from: 'GameManagerUI',     to: 'ReourceUIDatabaseSO', type: 'aggregation' },
+  { from: 'GameManager',       to: 'KeyCapDatabaseSO', type: 'aggregation' },
+
+  // ── ASSOCIATION ─────────────────────────────────────────
+  { from: 'EntityAction',      to: 'CombatActionSO',   type: 'association' },
+  { from: 'EntityAction',      to: 'IDamageable',      type: 'association' },
+  { from: 'Modifier',          to: 'Effect',           type: 'association' },
+  { from: 'Player',            to: 'IAttackModifier',  type: 'association' },
+  { from: 'Player',            to: 'CombatSystem',     type: 'association' },
+  { from: 'ComboGraphWindow',  to: 'ComboDatabaseSO',  type: 'association' },
+  { from: 'ComboGraphWindow',  to: 'ComboGraphViewNode', type: 'association' },
+];
+
+// ══════════════════════════════════════════════════════
+// SVG HELPERS
+// ══════════════════════════════════════════════════════
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function html(tag, attrs = {}, text = '') {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text) e.textContent = text;
+  return e;
+}
+
+// ══════════════════════════════════════════════════════
+// SETUP DEFS (markers)
+// ══════════════════════════════════════════════════════
+function setupDefs() {
+  const defs = document.getElementById('defs');
+
+  // Arrow end grey (association)
+  const mArrGrey = el('marker', { id:'arr-grey', markerWidth:'10', markerHeight:'7', refX:'9', refY:'3.5', orient:'auto' });
+  mArrGrey.appendChild(el('polygon', { points:'0 0 10 3.5 0 7', fill:'#6e7681' }));
+  defs.appendChild(mArrGrey);
+
+  // Arrow end red (composition)
+  const mArrRed = el('marker', { id:'arr-red', markerWidth:'10', markerHeight:'7', refX:'9', refY:'3.5', orient:'auto' });
+  mArrRed.appendChild(el('polygon', { points:'0 0 10 3.5 0 7', fill:'#f85149' }));
+  defs.appendChild(mArrRed);
+
+  // Arrow end blue (aggregation)
+  const mArrBlue = el('marker', { id:'arr-blue', markerWidth:'10', markerHeight:'7', refX:'9', refY:'3.5', orient:'auto' });
+  mArrBlue.appendChild(el('polygon', { points:'0 0 10 3.5 0 7', fill:'#58a6ff' }));
+  defs.appendChild(mArrBlue);
+
+  // Hollow triangle inherit (grey)
+  const mTriI = el('marker', { id:'tri-inherit', markerWidth:'12', markerHeight:'8', refX:'11', refY:'4', orient:'auto' });
+  mTriI.appendChild(el('polygon', { points:'0 0 12 4 0 8', fill:'#0d1117', stroke:'#c9d1d9', 'stroke-width':'1.6' }));
+  defs.appendChild(mTriI);
+
+  // Hollow triangle interface (pink)
+  const mTriF = el('marker', { id:'tri-iface', markerWidth:'12', markerHeight:'8', refX:'11', refY:'4', orient:'auto' });
+  mTriF.appendChild(el('polygon', { points:'0 0 12 4 0 8', fill:'#0d1117', stroke:'#ff7eb6', 'stroke-width':'1.6' }));
+  defs.appendChild(mTriF);
+
+  // Filled diamond comp (red) — start marker, auto-start-reverse flips so x=0 points back to source
+  const mDC = el('marker', { id:'dia-comp', markerWidth:'14', markerHeight:'8', refX:'1', refY:'4', orient:'auto-start-reverse' });
+  mDC.appendChild(el('polygon', { points:'1 4 8 0 14 4 8 8', fill:'#f85149' }));
+  defs.appendChild(mDC);
+
+  // Open diamond aggr (blue) — start marker
+  const mDA = el('marker', { id:'dia-aggr', markerWidth:'14', markerHeight:'8', refX:'1', refY:'4', orient:'auto-start-reverse' });
+  mDA.appendChild(el('polygon', { points:'1 4 8 0 14 4 8 8', fill:'#0d1117', stroke:'#58a6ff', 'stroke-width':'1.6' }));
+  defs.appendChild(mDA);
+}
+
+// ══════════════════════════════════════════════════════
+// NODE LOOKUP
+// ══════════════════════════════════════════════════════
+const nodeMap = {};
+NODES.forEach(n => { nodeMap[n.id] = n; });
+
+// ══════════════════════════════════════════════════════
+// BOUNDARY POINT
+// ══════════════════════════════════════════════════════
+function boundaryPt(node, tx, ty, margin = 0) {
+  const cx = node.x + NW / 2, cy = node.y + NH / 2;
+  const dx = tx - cx, dy = ty - cy;
+  if (!dx && !dy) return { x: cx, y: cy };
+  const hw = NW / 2 + margin, hh = NH / 2 + margin;
+  const t = Math.min(hw / Math.abs(dx || 1e-9), hh / Math.abs(dy || 1e-9));
+  return { x: cx + dx * t, y: cy + dy * t };
+}
+
+// ══════════════════════════════════════════════════════
+// EDGE PATH (cubic bezier)
+// ══════════════════════════════════════════════════════
+function edgePath(src, dst, style) {
+  const tcx = dst.x + NW / 2, tcy = dst.y + NH / 2;
+  const scx = src.x + NW / 2, scy = src.y + NH / 2;
+
+  const startMargin = style.startMark ? 14 : 2;
+  const endMargin   = style.endMark && style.endMark.startsWith('tri') ? 12 : 10;
+
+  const sp = boundaryPt(src, tcx, tcy, startMargin);
+  const ep = boundaryPt(dst, scx, scy, endMargin);
+
+  const dx = ep.x - sp.x;
+  // Simple bezier: control points offset horizontally to 40% span
+  const bend = Math.min(120, Math.abs(dx) * 0.5 + Math.abs(ep.y - sp.y) * 0.3);
+  const cx1 = sp.x + dx * 0.35;
+  const cy1 = sp.y;
+  const cx2 = ep.x - dx * 0.35;
+  const cy2 = ep.y;
+
+  return `M ${sp.x.toFixed(1)} ${sp.y.toFixed(1)} C ${cx1.toFixed(1)} ${cy1.toFixed(1)} ${cx2.toFixed(1)} ${cy2.toFixed(1)} ${ep.x.toFixed(1)} ${ep.y.toFixed(1)}`;
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+const edgeEls = {}; // id -> path element
+const nodeEls = {}; // id -> g element
+
+function renderEdges() {
+  const layer = document.getElementById('layer-edges');
+  layer.innerHTML = '';
+  EDGES.forEach((edge, i) => {
+    const src = nodeMap[edge.from], dst = nodeMap[edge.to];
+    if (!src || !dst) return;
+    const style = EDGE_STYLES[edge.type];
+    const attrs = {
+      d: edgePath(src, dst, style),
+      fill: 'none',
+      stroke: style.stroke,
+      'stroke-width': style.width,
+      'data-type': edge.type,
+      class: 'edge',
+      opacity: '0.75',
+    };
+    if (style.dash) attrs['stroke-dasharray'] = style.dash;
+    if (style.endMark) attrs['marker-end'] = `url(#${style.endMark})`;
+    if (style.startMark) attrs['marker-start'] = `url(#${style.startMark})`;
+    const path = el('path', attrs);
+    edgeEls[i] = path;
+    layer.appendChild(path);
+  });
+}
+
+function renderNodes() {
+  const layer = document.getElementById('layer-nodes');
+  layer.innerHTML = '';
+  NODES.forEach(node => {
+    const cat = CATS[node.cat] || { color: '#888', label: '?' };
+    const g = el('g', { class: 'node-g', 'data-id': node.id, transform: `translate(${node.x},${node.y})` });
+
+    const rect = el('rect', {
+      width: NW, height: NH, rx: 6,
+      fill: cat.color + '22',
+      stroke: cat.color,
+      'stroke-width': '1.5',
+    });
+
+    // Left color bar
+    const bar = el('rect', { x: 0, y: 0, width: 4, height: NH, rx: 2, fill: cat.color });
+
+    const label = el('text', {
+      x: 12, y: NH / 2 + 4,
+      'font-size': '12',
+      fill: '#e6edf3',
+      'font-family': "'Segoe UI', monospace",
+    });
+    label.textContent = node.id;
+
+    // Note indicator dot
+    if (node.note) {
+      const dot = el('circle', { cx: NW - 8, cy: 8, r: 4, fill: node.note.startsWith('❌') ? '#f85149' : node.note.startsWith('⚠') ? '#f0b429' : '#58a6ff' });
+      g.appendChild(rect);
+      g.appendChild(bar);
+      g.appendChild(label);
+      g.appendChild(dot);
+    } else {
+      g.appendChild(rect);
+      g.appendChild(bar);
+      g.appendChild(label);
+    }
+
+    // ── Drag ──
+    let dragging = false, ox = 0, oy = 0, startDrag = false;
+    g.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      dragging = true; startDrag = false;
+      const pt = toSvgPt(e.clientX, e.clientY);
+      ox = pt.x - node.x;
+      oy = pt.y - node.y;
+      g.setPointerCapture(e.pointerId);
+    });
+    g.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      startDrag = true;
+      const pt = toSvgPt(e.clientX, e.clientY);
+      node.x = pt.x - ox;
+      node.y = pt.y - oy;
+      g.setAttribute('transform', `translate(${node.x},${node.y})`);
+      renderEdges();
+    });
+    g.addEventListener('pointerup', e => {
+      if (!startDrag) showInfo(node);
+      dragging = false;
+    });
+
+    nodeEls[node.id] = g;
+    layer.appendChild(g);
+  });
+}
+
+function redrawEdgeForNodes(ids) {
+  EDGES.forEach((edge, i) => {
+    if (ids.includes(edge.from) || ids.includes(edge.to)) {
+      const src = nodeMap[edge.from], dst = nodeMap[edge.to];
+      const style = EDGE_STYLES[edge.type];
+      edgeEls[i]?.setAttribute('d', edgePath(src, dst, style));
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// PAN / ZOOM
+// ══════════════════════════════════════════════════════
+let vx = -60, vy = -30, vz = 0.72;
+
+function applyView() {
+  document.getElementById('root').setAttribute('transform', `translate(${vx},${vy}) scale(${vz})`);
+  document.getElementById('zoom-hud').textContent = Math.round(vz * 100) + '%';
+}
+
+function toSvgPt(cx, cy) {
+  return { x: (cx - vx) / vz, y: (cy - vy) / vz };
+}
+
+let panActive = false, panOX = 0, panOY = 0;
+
+const wrap = document.getElementById('svg-wrap');
+wrap.addEventListener('pointerdown', e => {
+  if (e.target.closest('.node-g')) return;
+  panActive = true;
+  panOX = e.clientX - vx;
+  panOY = e.clientY - vy;
+  wrap.style.cursor = 'grabbing';
+  wrap.setPointerCapture(e.pointerId);
+});
+wrap.addEventListener('pointermove', e => {
+  if (!panActive) return;
+  vx = e.clientX - panOX;
+  vy = e.clientY - panOY;
+  applyView();
+});
+wrap.addEventListener('pointerup', () => { panActive = false; wrap.style.cursor = 'default'; });
+
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.91;
+  const rect = wrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  vx = mx - (mx - vx) * factor;
+  vy = my - (my - vy) * factor;
+  vz = Math.min(4, Math.max(0.1, vz * factor));
+  applyView();
+}, { passive: false });
+
+// ══════════════════════════════════════════════════════
+// FILTER TOGGLES
+// ══════════════════════════════════════════════════════
+const visibleTypes = new Set(['inheritance','interface','composition','aggregation','association']);
+
+function applyEdgeFilter() {
+  document.querySelectorAll('.edge').forEach(p => {
+    const t = p.getAttribute('data-type');
+    p.style.display = visibleTypes.has(t) ? '' : 'none';
+  });
+}
+
+document.querySelectorAll('[data-type]').forEach(btn => {
+  if (!btn.classList.contains('btn') && !btn.classList.contains('leg-row')) return;
+  btn.addEventListener('click', () => {
+    const t = btn.getAttribute('data-type');
+    if (visibleTypes.has(t)) {
+      visibleTypes.delete(t);
+      document.querySelectorAll(`[data-type="${t}"]`).forEach(x => { x.classList.remove('on'); x.classList.add('off'); });
+    } else {
+      visibleTypes.add(t);
+      document.querySelectorAll(`[data-type="${t}"]`).forEach(x => { x.classList.add('on'); x.classList.remove('off'); });
+    }
+    applyEdgeFilter();
+  });
+});
+
+// ══════════════════════════════════════════════════════
+// INFO PANEL
+// ══════════════════════════════════════════════════════
+function showInfo(node) {
+  const panel = document.getElementById('info-panel');
+  panel.style.display = 'block';
+  document.getElementById('ip-name').textContent = node.id;
+  document.getElementById('ip-file').textContent = node.file || '—';
+  document.getElementById('ip-cat').textContent = CATS[node.cat]?.label || node.cat;
+  const noteRow = document.getElementById('ip-note-row');
+  const noteEl = document.getElementById('ip-note');
+  if (node.note) { noteRow.style.display = ''; noteEl.textContent = node.note; }
+  else noteRow.style.display = 'none';
+}
+
+document.getElementById('diagram').addEventListener('click', e => {
+  if (!e.target.closest('.node-g')) {
+    document.getElementById('info-panel').style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════════════════════
+// ZOOM CONTROLS
+// ══════════════════════════════════════════════════════
+document.getElementById('btn-reset').addEventListener('click', () => {
+  vx = -60; vy = -30; vz = 0.72; applyView();
+});
+
+document.getElementById('btn-fit').addEventListener('click', () => {
+  const wrap = document.getElementById('svg-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const xs = NODES.map(n => n.x), ys = NODES.map(n => n.y);
+  const minX = Math.min(...xs) - 20, minY = Math.min(...ys) - 20;
+  const maxX = Math.max(...xs) + NW + 20, maxY = Math.max(...ys) + NH + 20;
+  const scaleX = W / (maxX - minX), scaleY = H / (maxY - minY);
+  vz = Math.min(scaleX, scaleY, 2);
+  vx = -minX * vz + (W - (maxX - minX) * vz) / 2;
+  vy = -minY * vz + (H - (maxY - minY) * vz) / 2;
+  applyView();
+});
+
+// ══════════════════════════════════════════════════════
+// CATEGORY PANEL
+// ══════════════════════════════════════════════════════
+function buildCatPanel() {
+  const panel = document.getElementById('cat-panel');
+  for (const [key, cat] of Object.entries(CATS)) {
+    const row = html('div', { class: 'cat-row' });
+    const dot = html('div', { class: 'cat-dot', style: `background:${cat.color}` });
+    const lbl = html('span', {}, cat.label);
+    row.appendChild(dot);
+    row.appendChild(lbl);
+    panel.appendChild(row);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+setupDefs();
+renderEdges();
+renderNodes();
+buildCatPanel();
+applyView();
+</script>
+</body>
+</html>
